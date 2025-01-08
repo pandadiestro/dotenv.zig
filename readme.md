@@ -5,6 +5,13 @@
 dotenv.zig is a "bare-minimun" low-allocation library to load "`.env`" files
 into a project's  local environment.
 
+It allows for:
+
+- multiline quoted strings
+- escape characters (including hexadecimal bytes)
+- trailing newlines
+- retrocompatibility with the `std.process.EnvMap` structure
+
 ### Usage
 
 Normally, one would use `std.process.getEnvMap` to get a local hashmap of the
