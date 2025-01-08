@@ -36,8 +36,12 @@ fn loadEnv(
 pub fn loadEnvReader(
     comptime bufsize: usize,
     reader: *std.io.AnyReader,
-    allocator: std.mem.Allocator) !std.process.EnvMap {
+    allocator: std.mem.Allocator) !std.process.EnvMap
 ```
+
+> [!IMPORTANT]
+> As of zig master, `GenericReader` is deprecated, use `AnyReader` in your API
+> where possible.
 
 A subset of the possible errors this might result with are specified in the
 `LoaderError` ErrorSet, like so:
