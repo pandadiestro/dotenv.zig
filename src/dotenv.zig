@@ -45,6 +45,7 @@ fn nextEscaped(reader: *std.io.AnyReader) !u8 {
         'r' => '\r',
         't' => '\t',
         '\\' => '\\',
+        '"' => '"',
         else => LoaderError.UnexpectedEscape,
     };
 }
@@ -168,6 +169,8 @@ pub fn loadEnv(path: []const u8, allocator: std.mem.Allocator) !std.process.EnvM
     const file = try std.fs.cwd().openFile(path, std.fs.File.OpenFlags{
         .mode = .read_only,
     });
+
+    defer file.close();
 
     var env_map = try std.process.getEnvMap(allocator);
 
