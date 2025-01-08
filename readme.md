@@ -1,5 +1,7 @@
 ## dotenv.zig
 
+<img src="./media/logo.svg" alt="dotenv.zig's logo" align="right" width="200" />
+
 dotenv.zig is a "bare-minimun" low-allocation library to load "`.env`" files
 into a project's  local environment.
 
