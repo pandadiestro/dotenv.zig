@@ -46,6 +46,6 @@ put on, so it might overflow and then panic.
 ### To-Do
 
 - [ ] test coverage (0-100%)
-- [ ] buffer size specifier for both `loadEnv` and `bufferedReader`
+- [X] buffer size specifier for `loadEnv`
 - [ ] heap-allocated version of `loadEnv`
 

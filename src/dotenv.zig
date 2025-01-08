@@ -152,6 +152,37 @@ fn nextValue(reader: *std.io.AnyReader, buffer: []u8) !usize {
     return index;
 }
 
+test "nextValue_unquoted" {
+    const test_env =
+        \\alo
+    ;
+
+    var buf_stream = std.io.fixedBufferStream(test_env);
+    var buf_reader = buf_stream.reader().any();
+
+    var b: [3]u8 = undefined;
+
+    const len = try nextValue(&buf_reader, b[0..]);
+    try std.testing.expect(len == 3);
+    try std.testing.expect(std.mem.eql(u8, &b, "alo"));
+}
+
+test "nextValue_quoted" {
+    const test_env =
+        \\"alo"
+    ;
+
+    var buf_stream = std.io.fixedBufferStream(test_env);
+    var buf_reader = buf_stream.reader().any();
+
+    var b: [3]u8 = undefined;
+
+    const len = try nextValue(&buf_reader, b[0..]);
+    try std.testing.expect(len == 3);
+    try std.testing.expect(std.mem.eql(u8, &b, "alo"));
+}
+
+
 fn nextPair(reader: *std.io.AnyReader, key_buffer: []u8, val_buffer: []u8) ![2]usize {
     var lens = [2]usize{ 0, 0 };
 
@@ -165,8 +196,13 @@ fn nextPair(reader: *std.io.AnyReader, key_buffer: []u8, val_buffer: []u8) ![2]u
     return lens;
 }
 
-pub fn loadEnvReader(comptime bufsize: usize, reader: *std.io.AnyReader, allocator: std.mem.Allocator) !std.process.EnvMap {
+pub fn loadEnvReader(
+    comptime bufsize: usize,
+    reader: *std.io.AnyReader,
+    allocator: std.mem.Allocator
+) !std.process.EnvMap {
     var env_map = try std.process.getEnvMap(allocator);
+    errdefer env_map.deinit();
 
     var raw_buffer: [bufsize]u8 = undefined;
 
@@ -204,7 +240,7 @@ pub fn loadEnv(comptime bufsize: usize, path: []const u8, allocator: std.mem.All
 }
 
 
-test "full_env_correct" {
+test "loadEnv_correct" {
     const test_env =
         \\
         \\ws_server_port=9777
@@ -230,5 +266,25 @@ test "full_env_correct" {
     try std.testing.expect(std.mem.eql(u8, env_map.get("ws_server_port").?, "9777"));
     try std.testing.expect(std.mem.eql(u8, env_map.get("serial_device_path").?, "/dev/ttyUSB0"));
     try std.testing.expect(std.mem.eql(u8, env_map.get("a").?, "bbb"));
+}
+
+test "loadEnv_trailing" {
+    const test_env =
+        \\
+        \\ ws_server_port=9777
+        \\serial_device_path="/dev/ttyUSB0"
+    ;
+
+    var buf_stream = std.io.fixedBufferStream(test_env);
+    var buf_reader = buf_stream.reader().any();
+
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+
+    const allocator = gpa.allocator();
+
+    _ = loadEnvReader(512, &buf_reader, allocator) catch |err| {
+        return try std.testing.expect(err == LoaderError.TrailingSpace);
+    };
 }
 
