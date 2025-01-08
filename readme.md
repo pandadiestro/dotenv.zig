@@ -18,8 +18,25 @@ Normally, one would use `std.process.getEnvMap` to get a local hashmap of the
 current process' environment, this library wraps this structure to simply `put`
 the key-value pairs from whatever you specify as path.
 
+Both of these implementations require a comptime-known size for the static
+buffer of bytes.
+
+#### loading from a filepath
+
 ```zig
-pub fn loadEnv(path: []const u8, allocator: std.mem.Allocator) !std.process.EnvMap
+fn loadEnv(
+    comptime bufsize: usize,
+    path: []const u8,
+    allocator: std.mem.Allocator) !std.process.EnvMap
+```
+
+#### loading from a reader
+
+```zig
+pub fn loadEnvReader(
+    comptime bufsize: usize,
+    reader: *std.io.AnyReader,
+    allocator: std.mem.Allocator) !std.process.EnvMap {
 ```
 
 A subset of the possible errors this might result with are specified in the
@@ -40,12 +57,12 @@ All resulting from parsing errors.
 
 ### Limitations
 
-This library allocates a static 512 bytes buffer for each key-value pair to be
-put on, so it might overflow and then panic.
+This library allocates a static buffer for each key-value pair to be put on, so it might overflow and then panic if you set up a small buffer size inside `loadEnv`.
 
 ### To-Do
 
-- [ ] test coverage (0-100%)
-- [X] buffer size specifier for `loadEnv`
+- [ ] full function test coverage
+- [ ] add tests for utf-8 support
 - [ ] heap-allocated version of `loadEnv`
+- [X] buffer size specifier for `loadEnv`
 
