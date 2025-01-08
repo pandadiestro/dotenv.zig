@@ -152,37 +152,32 @@ fn nextValue(reader: *std.io.AnyReader, buffer: []u8) !usize {
     return index;
 }
 
-fn nextPair(reader: *std.io.AnyReader, buffer: []u8) ![2]usize {
+fn nextPair(reader: *std.io.AnyReader, key_buffer: []u8, val_buffer: []u8) ![2]usize {
     var lens = [2]usize{ 0, 0 };
 
-    lens[0] = try nextKey(reader, buffer[0..256]);
+    lens[0] = try nextKey(reader, key_buffer);
     if (lens[0] == 0) {
         return lens;
     }
 
-    lens[1] = try nextValue(reader, buffer[256..]);
+    lens[1] = try nextValue(reader, val_buffer);
 
     return lens;
 }
 
-pub fn loadEnv(path: []const u8, allocator: std.mem.Allocator) !std.process.EnvMap {
-    const file = try std.fs.cwd().openFile(path, std.fs.File.OpenFlags{
-        .mode = .read_only,
-    });
-
-    defer file.close();
-
+pub fn loadEnvReader(comptime bufsize: usize, reader: *std.io.AnyReader, allocator: std.mem.Allocator) !std.process.EnvMap {
     var env_map = try std.process.getEnvMap(allocator);
 
-    var buf_file = std.io.bufferedReader(file.reader().any());
-    var buf_reader = buf_file.reader().any();
-    var raw_buffer: [512]u8 = undefined;
+    var raw_buffer: [bufsize]u8 = undefined;
 
-    while (nextPair(&buf_reader, &raw_buffer)) |*pair| {
+    const slice_size = bufsize / 2;
+    while (nextPair(reader, raw_buffer[0..slice_size], raw_buffer[slice_size..])) |*pair| {
         if (pair[0] == 0)
             continue;
 
-        try env_map.put(raw_buffer[0..pair[0]], raw_buffer[256..256+pair[1]]);
+        try env_map.put(
+            raw_buffer[0..pair[0]],
+            raw_buffer[slice_size..slice_size+pair[1]]);
     } else |err| {
         switch (err) {
             error.EndOfStream => {},
@@ -193,5 +188,47 @@ pub fn loadEnv(path: []const u8, allocator: std.mem.Allocator) !std.process.EnvM
     }
 
     return env_map;
+}
+
+pub fn loadEnv(comptime bufsize: usize, path: []const u8, allocator: std.mem.Allocator) !std.process.EnvMap {
+    const file = try std.fs.cwd().openFile(path, std.fs.File.OpenFlags{
+        .mode = .read_only,
+    });
+
+    defer file.close();
+
+    var buf_file = std.io.bufferedReader(file.reader().any());
+    var buf_reader = buf_file.reader().any();
+
+    return loadEnvReader(bufsize, &buf_reader, allocator);
+}
+
+
+test "full_env_correct" {
+    const test_env =
+        \\
+        \\ws_server_port=9777
+        \\serial_device_path="/dev/ttyUSB0"
+        \\
+        \\
+        \\
+        \\a=bbb
+        \\
+        \\
+    ;
+
+    var buf_stream = std.io.fixedBufferStream(test_env);
+    var buf_reader = buf_stream.reader().any();
+
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+    defer _ = gpa.deinit();
+
+    var env_map = try loadEnvReader(512, &buf_reader, allocator);
+    defer env_map.deinit();
+
+    try std.testing.expect(std.mem.eql(u8, env_map.get("ws_server_port").?, "9777"));
+    try std.testing.expect(std.mem.eql(u8, env_map.get("serial_device_path").?, "/dev/ttyUSB0"));
+    try std.testing.expect(std.mem.eql(u8, env_map.get("a").?, "bbb"));
 }
 
