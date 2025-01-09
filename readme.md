@@ -9,7 +9,7 @@ It allows for:
 
 - multiline quoted strings
 - escape characters (including hexadecimal bytes)
-- trailing newlines
+- '#' comments
 - retrocompatibility with the `std.process.EnvMap` structure
 
 ### Usage
@@ -21,13 +21,22 @@ the key-value pairs from whatever you specify as path.
 Both of these implementations require a comptime-known size for the static
 buffer of bytes.
 
-#### loading from a filepath
+#### loading from a relative file path
 
 ```zig
 fn loadEnv(
     comptime bufsize: usize,
     path: []const u8,
     allocator: std.mem.Allocator) !std.process.EnvMap
+```
+
+#### loading from an absolute file path
+
+```zig
+fn loadEnvA(
+    comptime bufsize: usize,
+    path: []const u8,
+    allocator: std.mem.Allocator) !std.process.EnvMap {
 ```
 
 #### loading from a reader
@@ -39,7 +48,8 @@ pub fn loadEnvReader(
     allocator: std.mem.Allocator) !std.process.EnvMap
 ```
 
-> [!IMPORTANT]
+> Note:
+>
 > As of zig master, `GenericReader` is deprecated, use `AnyReader` in your API
 > where possible.
 
