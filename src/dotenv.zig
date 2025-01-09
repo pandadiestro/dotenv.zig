@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const LoaderError = error{
+pub const LoaderError = error{
     TrailingSpace,
     InvalidHex,
     UnexpectedEOF,
