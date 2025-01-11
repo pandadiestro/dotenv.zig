@@ -18,7 +18,7 @@ Normally, one would use `std.process.getEnvMap` to get a local hashmap of the
 current process' environment, this library wraps this structure to simply `put`
 the key-value pairs from whatever you specify as path.
 
-Both of these implementations require a comptime-known size for the static
+All of the following functions require a comptime-known size for the static
 buffer of bytes.
 
 #### loading from a relative file path
