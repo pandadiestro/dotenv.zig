@@ -387,6 +387,6 @@ test "loadEnv_trailing" {
     const allocator = gpa.allocator();
 
     const result = loadEnvReader(512, &buf_reader, allocator);
-    return try std.testing.expectError(LoaderError.TrailingSpace, result);
+    try std.testing.expectError(LoaderError.TrailingSpace, result);
 }
 
